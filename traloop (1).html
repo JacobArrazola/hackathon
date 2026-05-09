@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Traloop — Barter App</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+
+<!-- ── SUPABASE CLIENT ── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // 🔑 Replace these two values with your project's URL and anon key
+  // Find them at: Supabase Dashboard → Settings → API
+  const SUPABASE_URL  = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON = 'YOUR_SUPABASE_ANON_KEY';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0c10;
+  --surface:#13141a;
+  --surface2:#1c1d26;
+  --accent:#00e5a0;
+  --accent-dim:rgba(0,229,160,0.1);
+  --accent-glow:rgba(0,229,160,0.25);
+  --border:rgba(255,255,255,0.07);
+  --text:#e4e4f0;
+  --muted:#6b6b85;
+  --danger:#ff5c72;
+  --warn:#f5a623;
+  --radius:14px;
+  --font-display:'Syne',sans-serif;
+  --font-body:'DM Sans',sans-serif;
+}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;animation:fadeIn .35s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── AUTH SCREEN ── */
+#screen-auth{align-items:center;justify-content:center;flex-direction:column;
+  background:radial-gradient(ellipse at 20% 20%,rgba(0,229,160,.12),transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(64,96,255,.1),transparent 60%),
+             var(--bg);
+  padding:24px}
+.auth-logo{font-family:var(--font-display);font-size:36px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:-.5px}
+.auth-logo span{color:var(--accent)}
+.auth-tag{color:var(--muted);font-size:13px;margin-bottom:40px;letter-spacing:.05em}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;width:100%;max-width:400px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.auth-tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:28px}
+.auth-tab{flex:1;padding:9px;border-radius:7px;border:none;background:transparent;color:var(--muted);font-family:var(--font-display);font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.auth-tab.active{background:var(--accent);color:#0b0c10}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}
+.form-group input,.form-group textarea,.form-group select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;transition:.2s}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+.form-group textarea{resize:vertical;min-height:90px}
+.btn{width:100%;padding:14px;border:none;border-radius:10px;font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:.06em;cursor:pointer;transition:.2s;text-transform:uppercase}
+.btn--primary{background:var(--accent);color:#0b0c10}
+.btn--primary:hover{background:#00ffb3;transform:translateY(-1px)}
+.btn--ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn--ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn--danger{background:var(--danger);color:#fff}
+.btn--sm{padding:8px 16px;font-size:12px;width:auto;border-radius:8px}
+
+/* ── PROFILE SETUP ── */
+#screen-profile{align-items:center;justify-content:center;flex-direction:column;
+  background:var(--bg);padding:24px}
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px;width:100%;max-width:460px}
+.setup-title{font-family:var(--font-display);font-size:22px;font-weight:800;color:#fff;margin-bottom:6px}
+.setup-sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.avatar-picker{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.avatar-opt{width:48px;height:48px;border-radius:50%;font-size:22px;display:grid;place-items:center;background:var(--surface2);border:2px solid transparent;cursor:pointer;transition:.2s}
+.avatar-opt.chosen{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+
+/* ── MAIN APP LAYOUT ── */
+#screen-app{flex-direction:column;min-height:100vh}
+.app-shell{display:flex;flex:1;height:100vh;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 16px;flex-shrink:0}
+.sidebar-logo{font-family:var(--font-display);font-size:22px;font-weight:800;color:#fff;padding:0 8px;margin-bottom:32px}
+.sidebar-logo span{color:var(--accent)}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;cursor:pointer;color:var(--muted);font-size:14px;font-weight:500;transition:.2s;border:none;background:transparent;width:100%;text-align:left}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--accent);background:var(--accent-dim)}
+.nav-item .nav-icon{font-size:18px;width:24px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--accent);color:#0b0c10;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px}
+.sidebar-spacer{flex:1}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--surface2);cursor:pointer}
+.sidebar-avatar{width:34px;height:34px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent);display:grid;place-items:center;font-size:16px}
+.sidebar-username{font-size:13px;font-weight:500;color:var(--text)}
+.sidebar-handle{font-size:11px;color:var(--muted)}
+
+/* Main content */
+.main-content{flex:1;overflow-y:auto;padding:32px;background:var(--bg)}
+.main-content::-webkit-scrollbar{width:6px}
+.main-content::-webkit-scrollbar-track{background:transparent}
+.main-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* ── PANELS ── */
+.panel{display:none}
+.panel.active{display:block}
+.panel-title{font-family:var(--font-display);font-size:24px;font-weight:800;color:#fff;margin-bottom:6px}
+.panel-sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+
+/* ── FEED ── */
+.feed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.item-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:.25s;cursor:pointer}
+.item-card:hover{transform:translateY(-4px);border-color:rgba(0,229,160,.3);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.item-card__img{height:160px;display:grid;place-items:center;font-size:52px;background:var(--surface2);position:relative}
+.item-card__category{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;backdrop-filter:blur(6px)}
+.item-card__body{padding:16px}
+.item-card__name{font-family:var(--font-display);font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.item-card__desc{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item-card__footer{display:flex;align-items:center;justify-content:space-between}
+.item-card__owner{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.item-card__owner-avatar{width:22px;height:22px;border-radius:50%;background:var(--surface2);display:grid;place-items:center;font-size:11px}
+.item-card__wants{font-size:12px;color:var(--warn);font-weight:500}
+.trade-btn{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(0,229,160,.3);padding:6px 14px;border-radius:7px;font-family:var(--font-display);font-size:11px;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.05em}
+.trade-btn:hover{background:var(--accent);color:#0b0c10}
+
+/* ── MY ITEMS ── */
+.my-items-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.upload-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:32px}
+.upload-form-title{font-family:var(--font-display);font-size:16px;font-weight:700;margin-bottom:18px;color:#fff}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.emoji-picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.emoji-opt{width:40px;height:40px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:20px;display:grid;place-items:center;cursor:pointer;transition:.2s}
+.emoji-opt.chosen{border-color:var(--accent);background:var(--accent-dim)}
+
+/* ── REQUESTS ── */
+.request-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;display:flex;align-items:center;gap:16px}
+.request-card__info{flex:1}
+.request-card__title{font-family:var(--font-display);font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.request-card__sub{font-size:13px;color:var(--muted)}
+.request-card__actions{display:flex;gap:8px}
+.btn-accept{background:var(--accent);color:#0b0c10;border:none;padding:8px 18px;border-radius:8px;font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-accept:hover{background:#00ffb3}
+.btn-decline{background:transparent;color:var(--danger);border:1px solid var(--danger);padding:8px 18px;border-radius:8px;font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-decline:hover{background:var(--danger);color:#fff}
+.request-status{font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px}
+.status--pending{background:rgba(245,166,35,.15);color:var(--warn)}
+.status--accepted{background:var(--accent-dim);color:var(--accent)}
+.status--declined{background:rgba(255,92,114,.1);color:var(--danger)}
+.swap-arrow{font-size:24px;color:var(--muted)}
+
+/* ── DMS ── */
+.dm-layout{display:grid;grid-template-columns:260px 1fr;gap:0;height:calc(100vh - 120px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.dm-sidebar{border-right:1px solid var(--border);overflow-y:auto}
+.dm-sidebar-header{padding:16px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:15px;font-weight:700;color:#fff}
+.dm-convo{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:.2s;border-bottom:1px solid var(--border)}
+.dm-convo:hover,.dm-convo.active{background:var(--surface2)}
+.dm-convo-avatar{width:38px;height:38px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--border);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.dm-convo.active .dm-convo-avatar{border-color:var(--accent)}
+.dm-convo-name{font-size:14px;font-weight:500;color:var(--text)}
+.dm-convo-preview{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.dm-convo-time{font-size:11px;color:var(--muted);margin-left:auto;flex-shrink:0}
+.dm-chat{display:flex;flex-direction:column}
+.dm-chat-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.dm-chat-header-name{font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff}
+.dm-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.dm-messages::-webkit-scrollbar{width:4px}
+.dm-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.msg{max-width:68%;display:flex;flex-direction:column;gap:4px}
+.msg--mine{align-self:flex-end;align-items:flex-end}
+.msg--theirs{align-self:flex-start;align-items:flex-start}
+.msg__bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5}
+.msg--mine .msg__bubble{background:var(--accent);color:#0b0c10;border-bottom-right-radius:4px}
+.msg--theirs .msg__bubble{background:var(--surface2);color:var(--text);border-bottom-left-radius:4px}
+.msg__time{font-size:10px;color:var(--muted)}
+.dm-input-row{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.dm-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;transition:.2s}
+.dm-input:focus{border-color:var(--accent)}
+.dm-send{background:var(--accent);color:#0b0c10;border:none;padding:11px 18px;border-radius:10px;font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
+.dm-send:hover{background:#00ffb3}
+
+/* ── TRADE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:100%;max-width:480px;animation:fadeIn .3s ease}
+.modal-title{font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;margin-bottom:6px}
+.modal-sub{color:var(--muted);font-size:13px;margin-bottom:24px}
+.trade-preview{display:flex;align-items:center;gap:16px;background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:20px}
+.trade-preview-item{flex:1;text-align:center}
+.trade-preview-emoji{font-size:36px;margin-bottom:6px}
+.trade-preview-name{font-size:13px;font-weight:600;color:var(--text)}
+.trade-preview-owner{font-size:11px;color:var(--muted)}
+.trade-arrow{font-size:28px;color:var(--accent)}
+.modal-actions{display:flex;gap:10px}
+.modal-actions .btn{flex:1}
+.close-modal{position:absolute;top:16px;right:16px;background:transparent;border:none;color:var(--muted);font-size:22px;cursor:pointer}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:14px 20px;color:var(--text);font-size:14px;font-weight:500;z-index:200;animation:slideUp .3s ease;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast span{color:var(--accent);margin-right:8px}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state__icon{font-size:48px;margin-bottom:14px}
+.empty-state__title{font-family:var(--font-display);font-size:18px;color:var(--text);margin-bottom:6px}
+
+/* Tags */
+.tag{display:inline-block;background:var(--accent-dim);color:var(--accent);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.05em}
+
+/* Profile panel */
+.profile-header{display:flex;align-items:center;gap:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.profile-big-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent-dim);border:3px solid var(--accent);display:grid;place-items:center;font-size:30px;flex-shrink:0}
+.profile-info h2{font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff}
+.profile-info p{color:var(--muted);font-size:13px;margin-top:3px}
+.profile-stats{display:flex;gap:28px;margin-top:12px}
+.profile-stat{text-align:center}
+.profile-stat-val{font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff}
+.profile-stat-lbl{font-size:11px;color:var(--muted)}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════ -->
+<div class="screen active" id="screen-auth">
+  <div class="auth-logo">Tra<span>loop</span></div>
+  <div class="auth-tag">Trade smart. Live green.</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup',this)">Create Account</button>
+    </div>
+
+    <div id="auth-login">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••"/></div>
+      <button class="btn btn--primary" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <div id="auth-signup" style="display:none">
+      <div class="form-group"><label>Email</label><input type="email" id="signup-email" placeholder="you@email.com"/></div>
+      <div class="form-group"><label>Password</label><input type="password" id="signup-pass" placeholder="Create password"/></div>
+      <div class="form-group"><label>Confirm Password</label><input type="password" id="signup-pass2" placeholder="Repeat password"/></div>
+      <button class="btn btn--primary" id="signup-btn" onclick="doSignup()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PROFILE SETUP SCREEN
+══════════════════════════════════════ -->
+<div class="screen" id="screen-profile" style="display:none">
+  <div class="setup-card">
+    <div class="setup-title">Set up your profile 👋</div>
+    <div class="setup-sub">Tell the community a bit about yourself.</div>
+    <div class="form-group">
+      <label>Choose your avatar</label>
+      <div class="avatar-picker" id="avatar-picker">
+        <div class="avatar-opt chosen" data-val="🦊" onclick="pickAvatar(this)">🦊</div>
+        <div class="avatar-opt" data-val="🐻" onclick="pickAvatar(this)">🐻</div>
+        <div class="avatar-opt" data-val="🐙" onclick="pickAvatar(this)">🐙</div>
+        <div class="avatar-opt" data-val="🦋" onclick="pickAvatar(this)">🦋</div>
+        <div class="avatar-opt" data-val="🌿" onclick="pickAvatar(this)">🌿</div>
+        <div class="avatar-opt" data-val="🔥" onclick="pickAvatar(this)">🔥</div>
+        <div class="avatar-opt" data-val="⚡" onclick="pickAvatar(this)">⚡</div>
+        <div class="avatar-opt" data-val="🌊" onclick="pickAvatar(this)">🌊</div>
+      </div>
+    </div>
+    <div class="form-group"><label>First Name</label><input type="text" id="profile-firstname" placeholder="e.g. Alex"/></div>
+    <div class="form-group"><label>Last Name</label><input type="text" id="profile-lastname" placeholder="e.g. Rivera"/></div>
+    <div class="form-group"><label>Username</label><input type="text" id="profile-handle" placeholder="@yourhandle"/></div>
+    <div class="form-group"><label>City</label><input type="text" id="profile-city" placeholder="e.g. Denver"/></div>
+    <div class="form-group"><label>State</label><input type="text" id="profile-state" placeholder="e.g. CO"/></div>
+    <div class="form-group"><label>Bio</label><textarea id="profile-bio" placeholder="What do you love to trade?"></textarea></div>
+    <button class="btn btn--primary" id="profile-save-btn" onclick="saveProfile()">Enter Traloop →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════ -->
+<div class="screen" id="screen-app" style="display:none">
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">Tra<span>loop</span></div>
+      <button class="nav-item active" onclick="showPanel('feed',this)"><span class="nav-icon">🏠</span>Feed</button>
+      <button class="nav-item" onclick="showPanel('myitems',this)"><span class="nav-icon">📦</span>My Items</button>
+      <button class="nav-item" onclick="showPanel('requests',this)"><span class="nav-icon">🔄</span>Requests<span class="nav-badge" id="req-badge" style="display:none">0</span></button>
+      <button class="nav-item" onclick="showPanel('dms',this)"><span class="nav-icon">💬</span>Messages<span class="nav-badge" id="dm-badge" style="display:none">0</span></button>
+      <button class="nav-item" onclick="showPanel('profile',this)"><span class="nav-icon">👤</span>Profile</button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-user" onclick="showPanel('profile',document.querySelector('.nav-item:nth-child(6)'))">
+        <div class="sidebar-avatar" id="sidebar-av">🦊</div>
+        <div>
+          <div class="sidebar-username" id="sidebar-name">Loading…</div>
+          <div class="sidebar-handle" id="sidebar-handle">@—</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main-content">
+
+      <!-- FEED PANEL -->
+      <div class="panel active" id="panel-feed">
+        <div class="panel-title">Browse Items</div>
+        <div class="panel-sub">Find something worth trading for.</div>
+        <div class="feed-grid" id="feed-grid"><div class="empty-state" style="grid-column:1/-1"><div class="spinner"></div> Loading…</div></div>
+      </div>
+
+      <!-- MY ITEMS PANEL -->
+      <div class="panel" id="panel-myitems">
+        <div class="my-items-header">
+          <div>
+            <div class="panel-title">My Items</div>
+            <div class="panel-sub" style="margin-bottom:0">Items you've listed for trade.</div>
+          </div>
+          <button class="btn btn--primary btn--sm" onclick="toggleUploadForm()">+ List Item</button>
+        </div>
+
+        <!-- Upload form -->
+        <div class="upload-form" id="upload-form" style="display:none">
+          <div class="upload-form-title">📸 List a New Item</div>
+          <div class="form-group">
+            <label>Pick an Icon</label>
+            <div class="emoji-picker" id="item-emoji-picker">
+              <div class="emoji-opt chosen" data-val="📱" onclick="pickItemEmoji(this)">📱</div>
+              <div class="emoji-opt" data-val="👟" onclick="pickItemEmoji(this)">👟</div>
+              <div class="emoji-opt" data-val="📚" onclick="pickItemEmoji(this)">📚</div>
+              <div class="emoji-opt" data-val="🎸" onclick="pickItemEmoji(this)">🎸</div>
+              <div class="emoji-opt" data-val="🎮" onclick="pickItemEmoji(this)">🎮</div>
+              <div class="emoji-opt" data-val="🧥" onclick="pickItemEmoji(this)">🧥</div>
+              <div class="emoji-opt" data-val="🌱" onclick="pickItemEmoji(this)">🌱</div>
+              <div class="emoji-opt" data-val="🛋️" onclick="pickItemEmoji(this)">🛋️</div>
+              <div class="emoji-opt" data-val="🎨" onclick="pickItemEmoji(this)">🎨</div>
+              <div class="emoji-opt" data-val="🚲" onclick="pickItemEmoji(this)">🚲</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Item Name</label><input type="text" id="item-name" placeholder="e.g. Vintage Camera"/></div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="item-cat">
+                <option>Electronics</option><option>Fashion</option><option>Books</option>
+                <option>Music</option><option>Sports</option><option>Home</option>
+                <option>Garden</option><option>Art</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Description</label><textarea id="item-desc" placeholder="Describe the item — condition, age, story…"></textarea></div>
+          <div class="form-group"><label>Looking to trade for…</label><input type="text" id="item-wants" placeholder="e.g. Running shoes, Books, Anything creative"/></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn--primary" style="flex:1" onclick="addItem()">List Item</button>
+            <button class="btn btn--ghost" style="flex:1" onclick="toggleUploadForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="feed-grid" id="my-items-grid"></div>
+      </div>
+
+      <!-- REQUESTS PANEL -->
+      <div class="panel" id="panel-requests">
+        <div class="panel-title">Trade Requests</div>
+        <div class="panel-sub">Approve or decline incoming trade offers.</div>
+        <div id="requests-list"></div>
+      </div>
+
+      <!-- DMS PANEL -->
+      <div class="panel" id="panel-dms">
+        <div class="panel-title" style="margin-bottom:16px">Messages</div>
+        <div class="dm-layout">
+          <div class="dm-sidebar">
+            <div class="dm-sidebar-header">Conversations</div>
+            <div id="dm-convos"></div>
+          </div>
+          <div class="dm-chat" id="dm-chat">
+            <div class="dm-chat-header">
+              <div class="dm-convo-avatar" id="dm-chat-av">💬</div>
+              <div class="dm-chat-header-name" id="dm-chat-name">Select a conversation</div>
+            </div>
+            <div class="dm-messages" id="dm-messages"></div>
+            <div class="dm-input-row">
+              <input class="dm-input" id="dm-input" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+              <button class="dm-send" onclick="sendMsg()">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE PANEL -->
+      <div class="panel" id="panel-profile">
+        <div class="panel-title">My Profile</div>
+        <div class="panel-sub">Your Traloop identity.</div>
+        <div class="profile-header">
+          <div class="profile-big-avatar" id="prof-avatar">🦊</div>
+          <div class="profile-info">
+            <h2 id="prof-name">—</h2>
+            <p id="prof-handle">@—</p>
+            <p id="prof-location" style="color:var(--muted);font-size:13px;margin-top:4px">📍 —</p>
+            <p id="prof-bio" style="color:var(--muted);font-size:13px;margin-top:4px;font-style:italic">—</p>
+            <div class="profile-stats">
+              <div class="profile-stat"><div class="profile-stat-val" id="stat-items">0</div><div class="profile-stat-lbl">Items</div></div>
+              <div class="profile-stat"><div class="profile-stat-val" id="stat-trades">0</div><div class="profile-stat-lbl">Trades</div></div>
+              <div class="profile-stat"><div class="profile-stat-val" id="stat-rating">—</div><div class="profile-stat-lbl">Rating</div></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn--ghost" style="width:auto;padding:10px 24px" onclick="logout()">Sign Out</button>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TRADE MODAL
+══════════════════════════════════════ -->
+<div class="modal-overlay" id="trade-modal">
+  <div class="modal" style="position:relative">
+    <button class="close-modal" onclick="closeTradeModal()">✕</button>
+    <div class="modal-title">Propose a Trade</div>
+    <div class="modal-sub">Choose one of your items to offer in exchange.</div>
+    <div class="trade-preview">
+      <div class="trade-preview-item">
+        <div class="trade-preview-emoji" id="tm-their-emoji">📱</div>
+        <div class="trade-preview-name" id="tm-their-name">Their Item</div>
+        <div class="trade-preview-owner" id="tm-their-owner">by @someone</div>
+      </div>
+      <div class="trade-arrow">⇄</div>
+      <div class="trade-preview-item">
+        <div class="trade-preview-emoji" id="tm-my-emoji">❓</div>
+        <div class="trade-preview-name">Your Offer</div>
+        <div class="trade-preview-owner" id="tm-my-owner">by you</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Offer one of your items</label>
+      <select id="tm-offer-select"></select>
+    </div>
+    <div class="form-group">
+      <label>Message (optional)</label>
+      <textarea id="tm-message" placeholder="Hey! I'd love to trade for your…" style="min-height:70px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" onclick="closeTradeModal()">Cancel</button>
+      <button class="btn btn--primary" onclick="submitTradeRequest()">Send Request</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let state = {
+  authUser: null,       // Supabase auth user object
+  profile: null,        // row from `users` table
+  myItems: [],          // items owned by current user
+  feedItems: [],        // all available items (not mine)
+  tradeTarget: null,    // item being targeted for trade modal
+  activeConvoUserId: null,  // UUID of the person we're DMing
+  conversations: [],    // [{userId, name, av, handle, lastMsg, lastTime}]
+  selectedAvatar: '🦊',
+  selectedItemEmoji: '📱',
+  realtimeChannel: null,
+};
+
+// ══════════════════════════════════════
+// AUTH — SUPABASE
+// ══════════════════════════════════════
+function switchAuthTab(tab, el){
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('auth-login').style.display  = tab === 'login'  ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  if (!email || !pass) { toast('⚠️ Please enter your email and password.'); return; }
+
+  setLoading('login-btn', true);
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  setLoading('login-btn', false);
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  state.authUser = data.user;
+  await fetchAndLoadProfile();
+}
+
+async function doSignup(){
+  const email = document.getElementById('signup-email').value.trim();
+  const pass  = document.getElementById('signup-pass').value;
+  const pass2 = document.getElementById('signup-pass2').value;
+  if (!email) { toast('⚠️ Please enter your email.'); return; }
+  if (pass !== pass2) { toast('⚠️ Passwords do not match.'); return; }
+
+  setLoading('signup-btn', true);
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  setLoading('signup-btn', false);
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  state.authUser = data.user;
+  // The SQL trigger auto-creates a placeholder users row; go to profile setup
+  showScreen('screen-profile');
+}
+
+// ══════════════════════════════════════
+// PROFILE SETUP — SUPABASE
+// ══════════════════════════════════════
+function pickAvatar(el){
+  document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('chosen'));
+  el.classList.add('chosen');
+  state.selectedAvatar = el.dataset.val;
+}
+
+async function saveProfile(){
+  const firstName = document.getElementById('profile-firstname').value.trim();
+  const lastName  = document.getElementById('profile-lastname').value.trim();
+  let   handle    = document.getElementById('profile-handle').value.trim();
+  const city      = document.getElementById('profile-city').value.trim();
+  const stateVal  = document.getElementById('profile-state').value.trim();
+  const bio       = document.getElementById('profile-bio').value.trim();
+
+  if (!firstName || !handle) { toast('⚠️ First name and username are required.'); return; }
+  if (!handle.startsWith('@')) handle = '@' + handle;
+
+  setLoading('profile-save-btn', true);
+
+  const { error } = await sb.from('users').update({
+    first_name:   firstName,
+    last_name:    lastName,
+    username:     handle,
+    avatar_emoji: state.selectedAvatar,
+    city,
+    state:        stateVal,
+    bio,
+  }).eq('id', state.authUser.id);
+
+  setLoading('profile-save-btn', false);
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  await fetchAndLoadProfile();
+}
+
+// Fetch profile from DB then boot the app
+async function fetchAndLoadProfile(){
+  const { data: profile, error } = await sb
+    .from('users')
+    .select('*')
+    .eq('id', state.authUser.id)
+    .single();
+
+  if (error || !profile) { toast('⚠️ Could not load profile.'); return; }
+
+  // If the user has never set a real name/handle, send them to setup
+  if (profile.first_name === 'New' || !profile.username || profile.username.startsWith('user_')) {
+    state.profile = profile;
+    showScreen('screen-profile');
+    return;
+  }
+
+  state.profile = profile;
+  loadApp();
+  showScreen('screen-app');
+}
+
+// ══════════════════════════════════════
+// LOAD APP
+// ══════════════════════════════════════
+async function loadApp(){
+  const p = state.profile;
+  const displayName = p.first_name + ' ' + p.last_name;
+
+  document.getElementById('sidebar-av').textContent     = p.avatar_emoji;
+  document.getElementById('sidebar-name').textContent   = displayName;
+  document.getElementById('sidebar-handle').textContent = p.username;
+  document.getElementById('prof-avatar').textContent    = p.avatar_emoji;
+  document.getElementById('prof-name').textContent      = displayName;
+  document.getElementById('prof-handle').textContent    = p.username;
+  document.getElementById('prof-location').textContent  = '📍 ' + (p.city || '') + (p.state ? ', ' + p.state : '');
+  document.getElementById('prof-bio').textContent       = p.bio || 'No bio yet.';
+  document.getElementById('stat-trades').textContent    = p.trades_completed || 0;
+  document.getElementById('stat-rating').textContent    = (p.rating || 5.00).toFixed(1) + '⭐';
+
+  await Promise.all([renderFeed(), renderMyItems(), renderRequests(), renderConvos()]);
+  updateBadges();
+  subscribeToMessages();
+}
+
+// ══════════════════════════════════════
+// FEED — SUPABASE
+// ══════════════════════════════════════
+async function renderFeed(){
+  const grid = document.getElementById('feed-grid');
+  grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="spinner"></div> Loading feed…</div>`;
+
+  const { data, error } = await sb
+    .from('feed_items')
+    .select('*')
+    .neq('owner_id', state.authUser.id)
+    .eq('status', 'available');
+
+  if (error) { grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">⚠️ Could not load feed.</div>`; return; }
+
+  state.feedItems = data || [];
+
+  if (!state.feedItems.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state__icon">🌿</div><div class="empty-state__title">No items yet</div><p>Be the first to list something!</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = state.feedItems.map(item => `
+    <div class="item-card" onclick="openTradeModal('${item.id}')">
+      <div class="item-card__img">
+        ${item.emoji}
+        <span class="item-card__category">${item.category || ''}</span>
+      </div>
+      <div class="item-card__body">
+        <div class="item-card__name">${item.title}</div>
+        <div class="item-card__desc">${item.description || ''}</div>
+        <div class="item-card__footer">
+          <div class="item-card__owner">
+            <div class="item-card__owner-avatar">${item.owner_avatar}</div>
+            ${item.owner_handle}
+          </div>
+          <button class="trade-btn" onclick="event.stopPropagation();openTradeModal('${item.id}')">Trade</button>
+        </div>
+        <div class="item-card__wants" style="margin-top:8px;font-size:11px">Wants: ${item.wants || 'Make an offer!'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════
+// MY ITEMS — SUPABASE
+// ══════════════════════════════════════
+let uploadOpen = false;
+function toggleUploadForm(){
+  uploadOpen = !uploadOpen;
+  document.getElementById('upload-form').style.display = uploadOpen ? 'block' : 'none';
+}
+
+function pickItemEmoji(el){
+  document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('chosen'));
+  el.classList.add('chosen');
+  state.selectedItemEmoji = el.dataset.val;
+}
+
+async function addItem(){
+  const title = document.getElementById('item-name').value.trim();
+  const desc  = document.getElementById('item-desc').value.trim();
+  const wants = document.getElementById('item-wants').value.trim();
+  const cat   = document.getElementById('item-cat').value;
+
+  if (!title || !desc) { toast('⚠️ Name and description are required.'); return; }
+
+  const { error } = await sb.from('items').insert({
+    owner_id:    state.authUser.id,
+    title,
+    description: desc,
+    category:    cat,
+    emoji:       state.selectedItemEmoji,
+    wants:       wants || 'Make an offer!',
+    status:      'available',
+  });
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  document.getElementById('item-name').value  = '';
+  document.getElementById('item-desc').value  = '';
+  document.getElementById('item-wants').value = '';
+  toggleUploadForm();
+  await Promise.all([renderMyItems(), renderFeed()]);
+  toast('✅ Item listed successfully!');
+}
+
+async function renderMyItems(){
+  const grid = document.getElementById('my-items-grid');
+
+  const { data, error } = await sb
+    .from('items')
+    .select('*')
+    .eq('owner_id', state.authUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) { grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">⚠️ Could not load items.</div>`; return; }
+
+  state.myItems = data || [];
+  document.getElementById('stat-items').textContent = state.myItems.length;
+
+  if (!state.myItems.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state__icon">📦</div><div class="empty-state__title">No items listed yet</div><p>Click "+ List Item" to add your first item.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = state.myItems.map(item => `
+    <div class="item-card">
+      <div class="item-card__img">
+        ${item.emoji}
+        <span class="item-card__category">${item.category || ''}</span>
+      </div>
+      <div class="item-card__body">
+        <div class="item-card__name">${item.title}</div>
+        <div class="item-card__desc">${item.description || ''}</div>
+        <div class="item-card__footer">
+          <span class="tag">Your listing</span>
+          <button onclick="removeItem('${item.id}')" style="background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:18px">🗑</button>
+        </div>
+        <div class="item-card__wants" style="margin-top:8px;font-size:11px">Wants: ${item.wants || 'Make an offer!'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function removeItem(id){
+  const { error } = await sb.from('items').delete().eq('id', id);
+  if (error) { toast('⚠️ ' + error.message); return; }
+  await Promise.all([renderMyItems(), renderFeed()]);
+  toast('🗑 Item removed.');
+}
+
+// ══════════════════════════════════════
+// TRADE MODAL — SUPABASE
+// ══════════════════════════════════════
+function openTradeModal(itemId){
+  const item = state.feedItems.find(i => i.id === itemId);
+  if (!item) return;
+  state.tradeTarget = item;
+
+  document.getElementById('tm-their-emoji').textContent = item.emoji;
+  document.getElementById('tm-their-name').textContent  = item.title;
+  document.getElementById('tm-their-owner').textContent = 'by ' + item.owner_handle;
+
+  const sel = document.getElementById('tm-offer-select');
+  if (!state.myItems.length) {
+    sel.innerHTML = '<option disabled>No items listed yet — add one first!</option>';
+    document.getElementById('tm-my-emoji').textContent = '❓';
+  } else {
+    sel.innerHTML = state.myItems.map(i =>
+      `<option value="${i.id}" data-emoji="${i.emoji}">${i.emoji} ${i.title}</option>`
+    ).join('');
+    document.getElementById('tm-my-emoji').textContent = state.myItems[0].emoji;
+    sel.onchange = () => {
+      const chosen = state.myItems.find(i => i.id === sel.value);
+      if (chosen) document.getElementById('tm-my-emoji').textContent = chosen.emoji;
+    };
+  }
+
+  document.getElementById('tm-my-owner').textContent = 'by ' + state.profile.username;
+  document.getElementById('trade-modal').classList.add('open');
+}
+
+function closeTradeModal(){
+  document.getElementById('trade-modal').classList.remove('open');
+}
+
+async function submitTradeRequest(){
+  const sel    = document.getElementById('tm-offer-select');
+  const msg    = document.getElementById('tm-message').value.trim();
+  const target = state.tradeTarget;
+
+  if (!target || !sel.value) { toast('⚠️ Select an item to offer.'); return; }
+
+  const { error } = await sb.from('trades').insert({
+    from_user_id:    state.authUser.id,
+    to_user_id:      target.owner_id,
+    item_id:         target.id,
+    offered_item_id: sel.value,
+    message:         msg,
+    status:          'pending',
+  });
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  closeTradeModal();
+  document.getElementById('tm-message').value = '';
+
+  // Send an opening DM to the item owner
+  await sb.from('messages').insert({
+    from_user_id: state.authUser.id,
+    to_user_id:   target.owner_id,
+    content:      `Hey! I just sent a trade request for your "${target.title}" 🤝`,
+  });
+
+  await Promise.all([renderRequests(), renderConvos()]);
+  toast('✅ Trade request sent!');
+  showPanel('dms', document.querySelectorAll('.nav-item')[3]);
+  openConvo(target.owner_id);
+}
+
+// ══════════════════════════════════════
+// REQUESTS — SUPABASE
+// ══════════════════════════════════════
+async function renderRequests(){
+  const list = document.getElementById('requests-list');
+  list.innerHTML = `<div class="empty-state"><div class="spinner"></div> Loading…</div>`;
+
+  // Fetch trades involving the current user, join item titles and user info
+  const { data, error } = await sb
+    .from('trades')
+    .select(`
+      id, status, message, from_user_id, to_user_id,
+      item:item_id(id, title, emoji),
+      offered:offered_item_id(id, title, emoji),
+      from_user:from_user_id(id, first_name, last_name, username, avatar_emoji),
+      to_user:to_user_id(id, first_name, last_name, username, avatar_emoji)
+    `)
+    .or(`from_user_id.eq.${state.authUser.id},to_user_id.eq.${state.authUser.id}`)
+    .order('created_at', { ascending: false });
+
+  if (error) { list.innerHTML = `<div class="empty-state">⚠️ Could not load requests.</div>`; return; }
+
+  const incoming = (data || []).filter(r => r.to_user_id   === state.authUser.id);
+  const outgoing = (data || []).filter(r => r.from_user_id === state.authUser.id);
+
+  let html = '';
+
+  if (incoming.length) {
+    html += `<div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px">Incoming</div>`;
+    html += incoming.map(r => `
+      <div class="request-card" id="req-${r.id}">
+        <div style="font-size:32px">${r.from_user?.avatar_emoji || '👤'}</div>
+        <div class="request-card__info">
+          <div class="request-card__title">${r.from_user?.first_name || ''} <span style="color:var(--muted);font-weight:400">wants to trade</span></div>
+          <div style="display:flex;align-items:center;gap:8px;margin:6px 0">
+            <span>${r.offered?.emoji || '📦'} ${r.offered?.title || 'their item'}</span>
+            <span style="color:var(--accent)">⇄</span>
+            <span>${r.item?.emoji || '📦'} ${r.item?.title || 'your item'}</span>
+          </div>
+          ${r.message ? `<div class="request-card__sub">"${r.message}"</div>` : ''}
+        </div>
+        ${r.status === 'pending' ? `
+          <div class="request-card__actions">
+            <button class="btn-accept" onclick="resolveRequest('${r.id}','accepted','${r.from_user?.id}','${r.item?.title}')">Accept</button>
+            <button class="btn-decline" onclick="resolveRequest('${r.id}','declined','${r.from_user?.id}','${r.item?.title}')">Decline</button>
+          </div>` :
+          `<span class="request-status status--${r.status}">${capitalize(r.status)}</span>`}
+      </div>
+    `).join('');
+  }
+
+  if (outgoing.length) {
+    html += `<div style="font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:20px 0 14px">Sent</div>`;
+    html += outgoing.map(r => `
+      <div class="request-card">
+        <div style="font-size:32px">📤</div>
+        <div class="request-card__info">
+          <div class="request-card__title">Trade request to ${r.to_user?.first_name || 'user'}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin:6px 0">
+            <span>${r.offered?.emoji || '📦'} ${r.offered?.title || 'your item'}</span>
+            <span style="color:var(--accent)">⇄</span>
+            <span>${r.item?.emoji || '📦'} ${r.item?.title || 'their item'}</span>
+          </div>
+        </div>
+        <span class="request-status status--${r.status}">${capitalize(r.status)}</span>
+      </div>
+    `).join('');
+  }
+
+  if (!incoming.length && !outgoing.length) {
+    html = `<div class="empty-state"><div class="empty-state__icon">🔄</div><div class="empty-state__title">No trade requests yet</div><p>Browse the feed and propose a trade!</p></div>`;
+  }
+
+  list.innerHTML = html;
+  updateBadges(incoming.filter(r => r.status === 'pending').length);
+}
+
+async function resolveRequest(id, status, fromUserId, itemTitle){
+  const { error } = await sb.from('trades').update({
+    status,
+    resolved_at: new Date().toISOString(),
+  }).eq('id', id);
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  if (status === 'accepted') {
+    await sb.from('messages').insert({
+      from_user_id: state.authUser.id,
+      to_user_id:   fromUserId,
+      content:      `Great news! I accepted your trade for "${itemTitle}" 🎉`,
+    });
+    toast('✅ Trade accepted!');
+  } else {
+    toast('❌ Trade declined.');
+  }
+
+  await Promise.all([renderRequests(), renderConvos()]);
+}
+
+// ══════════════════════════════════════
+// DMS — SUPABASE
+// ══════════════════════════════════════
+async function renderConvos(){
+  const el = document.getElementById('dm-convos');
+
+  // Get all messages involving current user, pick last per conversation partner
+  const { data, error } = await sb
+    .from('messages')
+    .select(`
+      id, content, sent_at, is_unread,
+      from_user_id, to_user_id,
+      from_user:from_user_id(id, first_name, username, avatar_emoji),
+      to_user:to_user_id(id, first_name, username, avatar_emoji)
+    `)
+    .or(`from_user_id.eq.${state.authUser.id},to_user_id.eq.${state.authUser.id}`)
+    .order('sent_at', { ascending: false });
+
+  if (error || !data) { el.innerHTML = ''; return; }
+
+  // Deduplicate by conversation partner
+  const seen = new Map();
+  for (const msg of data) {
+    const partnerId = msg.from_user_id === state.authUser.id ? msg.to_user_id : msg.from_user_id;
+    if (!seen.has(partnerId)) {
+      const partner = msg.from_user_id === state.authUser.id ? msg.to_user : msg.from_user;
+      seen.set(partnerId, {
+        userId: partnerId,
+        name:   partner?.first_name || 'User',
+        av:     partner?.avatar_emoji || '👤',
+        handle: partner?.username || '',
+        lastMsg: msg.content,
+        lastTime: formatTime(msg.sent_at),
+        unread:  msg.is_unread && msg.to_user_id === state.authUser.id,
+      });
+    }
+  }
+
+  state.conversations = [...seen.values()];
+
+  if (!state.conversations.length) {
+    el.innerHTML = `<div style="padding:20px;color:var(--muted);font-size:13px">No messages yet.<br>Send a trade request to start a conversation!</div>`;
+    return;
+  }
+
+  el.innerHTML = state.conversations.map(c => `
+    <div class="dm-convo${state.activeConvoUserId === c.userId ? ' active' : ''}" onclick="openConvo('${c.userId}')">
+      <div class="dm-convo-avatar">${c.av}</div>
+      <div style="flex:1;min-width:0">
+        <div class="dm-convo-name">${c.name}</div>
+        <div class="dm-convo-preview">${c.lastMsg}</div>
+      </div>
+      <div class="dm-convo-time">${c.lastTime}</div>
+    </div>
+  `).join('');
+
+  // Update unread badge
+  const unreadCount = state.conversations.filter(c => c.unread).length;
+  const dmBadge = document.getElementById('dm-badge');
+  dmBadge.textContent = unreadCount;
+  dmBadge.style.display = unreadCount ? 'inline' : 'none';
+}
+
+async function openConvo(partnerId){
+  state.activeConvoUserId = partnerId;
+  const convo = state.conversations.find(c => c.userId === partnerId);
+
+  if (convo) {
+    document.getElementById('dm-chat-av').textContent   = convo.av;
+    document.getElementById('dm-chat-name').textContent = convo.name + ' ' + convo.handle;
+  }
+
+  // Fetch the full thread
+  const { data, error } = await sb
+    .from('messages')
+    .select('id, content, sent_at, from_user_id')
+    .or(
+      `and(from_user_id.eq.${state.authUser.id},to_user_id.eq.${partnerId}),` +
+      `and(from_user_id.eq.${partnerId},to_user_id.eq.${state.authUser.id})`
+    )
+    .order('sent_at', { ascending: true });
+
+  const msgs = document.getElementById('dm-messages');
+  if (error || !data) { msgs.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px">Could not load messages.</div>'; return; }
+
+  msgs.innerHTML = data.map(m => {
+    const mine = m.from_user_id === state.authUser.id;
+    return `
+      <div class="msg msg--${mine ? 'mine' : 'theirs'}">
+        <div class="msg__bubble">${m.content}</div>
+        <div class="msg__time">${formatTime(m.sent_at)}</div>
+      </div>
+    `;
+  }).join('');
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Mark messages to this user as read
+  await sb.from('messages')
+    .update({ is_unread: false })
+    .eq('from_user_id', partnerId)
+    .eq('to_user_id', state.authUser.id);
+
+  renderConvos();
+}
+
+async function sendMsg(){
+  const input = document.getElementById('dm-input');
+  const text  = input.value.trim();
+  if (!text || !state.activeConvoUserId) return;
+
+  const { error } = await sb.from('messages').insert({
+    from_user_id: state.authUser.id,
+    to_user_id:   state.activeConvoUserId,
+    content:      text,
+  });
+
+  if (error) { toast('⚠️ ' + error.message); return; }
+
+  input.value = '';
+  await openConvo(state.activeConvoUserId);
+  renderConvos();
+}
+
+// Realtime subscription for incoming messages
+function subscribeToMessages(){
+  if (state.realtimeChannel) sb.removeChannel(state.realtimeChannel);
+
+  state.realtimeChannel = sb
+    .channel('public:messages')
+    .on('postgres_changes', {
+      event:  'INSERT',
+      schema: 'public',
+      table:  'messages',
+      filter: `to_user_id=eq.${state.authUser.id}`,
+    }, async () => {
+      await renderConvos();
+      if (state.activeConvoUserId) await openConvo(state.activeConvoUserId);
+    })
+    .subscribe();
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function showPanel(name, navEl){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (navEl) navEl.classList.add('active');
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  el.classList.add('active');
+}
+
+function updateBadges(pendingCount){
+  if (pendingCount === undefined) return;
+  const badge = document.getElementById('req-badge');
+  badge.textContent   = pendingCount;
+  badge.style.display = pendingCount ? 'inline' : 'none';
+}
+
+function setLoading(btnId, loading){
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled     = loading;
+  btn.innerHTML    = loading ? `<span class="spinner"></span> Please wait…` : btn.dataset.label || btn.innerHTML;
+  if (!loading && !btn.dataset.label) btn.dataset.label = btn.innerHTML;
+}
+
+function formatTime(iso){
+  if (!iso) return '';
+  const d    = new Date(iso);
+  const now  = new Date();
+  const diff = now - d;
+  if (diff < 60000)      return 'Just now';
+  if (diff < 3600000)    return Math.floor(diff / 60000) + 'm ago';
+  if (diff < 86400000)   return d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+  if (diff < 604800000)  return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  return d.toLocaleDateString();
+}
+
+function capitalize(str){ return str.charAt(0).toUpperCase() + str.slice(1); }
+
+async function logout(){
+  if (state.realtimeChannel) sb.removeChannel(state.realtimeChannel);
+  await sb.auth.signOut();
+  state = { authUser:null, profile:null, myItems:[], feedItems:[], tradeTarget:null, activeConvoUserId:null, conversations:[], selectedAvatar:'🦊', selectedItemEmoji:'📱', realtimeChannel:null };
+  showScreen('screen-auth');
+}
+
+let toastTimer;
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = msg;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3200);
+}
+
+// ══════════════════════════════════════
+// BOOT — check for existing session
+// ══════════════════════════════════════
+(async () => {
+  showScreen('screen-auth');
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    state.authUser = session.user;
+    await fetchAndLoadProfile();
+  }
+})();
+</script>
+</body>
+</html>

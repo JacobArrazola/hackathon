@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://apazruticllrtoxvxfoe.supabase.co';
-const supabaseAnonKey = 'sb_publishable_taoA0LOuK65qpZpOFWCRWw_Bt68Un-F';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Expose supabase globally for browser debugging

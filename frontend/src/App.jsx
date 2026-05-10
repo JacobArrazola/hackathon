@@ -1,4 +1,4 @@
-
+import AiTest from './AiTest';
 import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import AuthScreen from './components/AuthScreen';
@@ -42,12 +42,13 @@ function App() {
   }
 
   return (
-    <>
+    <div>
       {/* Google Fonts */}
       <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
       <Router>
         <Routes>
           <Route path="/" element={<AuthScreenWrapper />} />
+          <AiTest />
           <Route path="/login" element={<AuthScreenWrapper />} />
           <Route path="/profile" element={<PrivateRoute><ProfileScreenWrapper /></PrivateRoute>} />
           <Route path="/app" element={<PrivateRoute><MainApp openTradeModal={() => setShowTradeModal(true)} /></PrivateRoute>} />
@@ -61,7 +62,7 @@ function App() {
         </Routes>
         {showTradeModal && <TradeModal onClose={() => setShowTradeModal(false)} />}
       </Router>
-    </>
+    </div>
   );
 }
 
